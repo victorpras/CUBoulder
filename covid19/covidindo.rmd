@@ -1,0 +1,92 @@
+---
+title: "COVID-19 Analysis for Indonesia"
+author: "Victor T"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+```
+
+## Data Loading
+
+```{r data-loading}
+# URLs for the datasets
+confirmed_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
+deaths_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"
+recovered_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv"
+
+# Reading the datasets
+confirmed <- read_csv(confirmed_url)
+deaths <- read_csv(deaths_url)
+recovered <- read_csv(recovered_url)
+```
+
+## Data Preparation
+
+```{r data-preparation}
+# Function to transform data
+prepare_data <- function(data, case_type) {
+  data %>%
+    filter(`Country/Region` == "Indonesia") %>%
+    select(-`Province/State`, -Lat, -Long) %>%
+    pivot_longer(cols = -`Country/Region`, names_to = "Date", values_to = case_type) %>%
+    mutate(Date = mdy(Date))
+}
+
+# Preparing datasets
+confirmed_long <- prepare_data(confirmed, "Confirmed")
+deaths_long <- prepare_data(deaths, "Deaths")
+recovered_long <- prepare_data(recovered, "Recovered")
+
+# Merging datasets
+covid_data <- confirmed_long %>%
+  left_join(deaths_long, by = c("Country/Region", "Date")) %>%
+  left_join(recovered_long, by = c("Country/Region", "Date")) %>%
+  mutate(Active = Confirmed - Deaths - Recovered)
+```
+
+## Visualization 1: Time Series of Confirmed Cases
+
+```{r time-series-plot}
+covid_data %>%
+  ggplot(aes(x = Date, y = Confirmed)) +
+  geom_line(color = "blue") +
+  labs(title = "Confirmed COVID-19 Cases in Indonesia",
+       x = "Date",
+       y = "Number of Cases") +
+  theme_minimal()
+```
+
+## Visualization 2: Total Deaths, Recoveries, and Active Cases
+
+```{r bar-plot}
+# Latest data
+latest_data <- covid_data %>%
+  filter(Date == max(Date)) %>%
+  select(Deaths, Recovered, Active) %>%
+  pivot_longer(cols = everything(), names_to = "Case_Type", values_to = "Count")
+
+# Bar plot
+latest_data %>%
+  ggplot(aes(x = Case_Type, y = Count, fill = Case_Type)) +
+  geom_bar(stat = "identity") +
+  labs(title = "COVID-19 Outcomes in Indonesia (Latest Data)",
+       x = "Case Type",
+       y = "Number of Cases") +
+  theme_minimal()
+```
+
+## Analysis
+
+As of the latest available data:
+
+- **Total Confirmed Cases:** `r max(covid_data$Confirmed, na.rm = TRUE)`
+- **Total Deaths:** `r max(covid_data$Deaths, na.rm = TRUE)`
+- **Total Recovered:** `r max(covid_data$Recovered, na.rm = TRUE)`
+- **Total Active Cases:** `r max(covid_data$Active, na.rm = TRUE)`
+
+The time series plot illustrates the progression of confirmed COVID-19 cases in Indonesia over time, showing significant increases during certain periods. The bar plot provides a snapshot of the current distribution of outcomes, highlighting the proportions of deaths, recoveries, and active cases.
