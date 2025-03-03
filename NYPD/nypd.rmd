@@ -1,0 +1,49 @@
+---
+title: "NYPD Shooting Incidents Analysis"
+author: "Victor T"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Libraries
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+
+## Load Data
+```{r}
+data <- read.csv("NYPD_Shooting_Incident_Data__Historic_.csv", stringsAsFactors = FALSE)
+head(data)
+```
+
+## Data Summary
+```{r}
+summary(data)
+```
+
+## Incidents Over Time
+```{r}
+data$OCCUR_DATE <- as.Date(data$OCCUR_DATE, format="%m/%d/%Y")
+ggplot(data, aes(x = OCCUR_DATE)) +
+  geom_histogram(binwidth = 365, fill="blue", alpha=0.7) +
+  labs(title="Shooting Incidents Over Time", x="Year", y="Count")
+```
+
+## Borough-wise Distribution
+```{r}
+ggplot(data, aes(x = BORO)) +
+  geom_bar(fill="red", alpha=0.7) +
+  labs(title="Shooting Incidents by Borough", x="Borough", y="Count")
+```
+
+## Victim Age Group Distribution
+```{r}
+ggplot(data, aes(x = VIC_AGE_GROUP)) +
+  geom_bar(fill="green", alpha=0.7) +
+  labs(title="Victim Age Group Distribution", x="Age Group", y="Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
